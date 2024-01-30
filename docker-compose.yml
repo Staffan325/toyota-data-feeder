@@ -1,0 +1,28 @@
+version: "3.7"
+
+services:
+  data-feeder:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: data-feeder
+    networks:
+      - data-feeder
+    env_file:
+      - .env
+  mqtt_sub:
+    image: eclipse-mosquitto:latest
+    container_name: mqtt_sub
+    command: /start_mqtt_sub.sh
+    networks:
+      - data-feeder
+    env_file:
+      - .env
+    volumes:
+      - ./ca.crt:/mosquitto/config/ca.crt:ro
+      - ./start_mqtt_sub.sh:/start_mqtt_sub.sh:ro
+
+networks:
+  data-feeder:
+    driver: bridge
+    name: data-feeder

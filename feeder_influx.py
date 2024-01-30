@@ -11,6 +11,8 @@ from datetime import datetime
 BROKER_URL = os.environ.get('MQTT_URL', "localhost")
 BROKER_PORT = os.environ.get('MQTT_PORT', "1887")
 CLIENT_ID = os.environ.get('CLIENT_ID', "toyota")
+MQTT_USERNAME = os.environ.get('MQTT_USERNAME', None)
+MQTT_PASSWORD = os.environ.get('MQTT_PASSWORD', None)
 INFLUX_BUCKET = os.environ.get('INFLUX_BUCKET', "toyota")
 INFLUX_ORG = os.environ.get('INFLUX_ORG', "toyota")
 INFLUX_TOKEN = os.environ.get('INFLUX_TOKEN')
@@ -50,6 +52,13 @@ def send_data(client, data):
         time.sleep(1)
 
 
+def get_value(value):
+    try:
+        return value.split(':')[0]
+    except AttributeError:
+        return value
+
+
 def read_influx_data(fields=['SPEED']):
     """Reads data from InfluxDB and returns a dictionary with timestamps as
     keys and values as dictionaries with signal names as keys and values as
@@ -73,7 +82,7 @@ def read_influx_data(fields=['SPEED']):
         for record in table.records:
             time = record.get_time().astimezone().timestamp()
             records[time] = {
-                record.get_field(): record.get_value().split(':')[0]
+                record.get_field(): get_value(record.get_value())
             }
 
     return records
@@ -99,6 +108,9 @@ def main():
 
     # Connect to MQTT broker
     client = mqtt.Client()
+    if MQTT_USERNAME and MQTT_PASSWORD:
+        print("Setting username and password")
+        client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
     client.tls_set("ca.crt")
     client.tls_insecure_set(True)
     client.on_connect = on_connect
